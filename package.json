@@ -1,0 +1,22 @@
+{
+  "name": "drevertex-website",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/api"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,api -c blue,green \"npm run dev --workspace web\" \"npm run start:dev --workspace api\"",
+    "dev:web": "npm run dev --workspace web",
+    "dev:api": "npm run start:dev --workspace api",
+    "build": "npm run build --workspace web && npm run build --workspace api",
+    "lint": "npm run lint --workspace web && npm run lint --workspace api",
+    "test": "npm run test --workspace api",
+    "test:e2e": "npm run test:e2e --workspace api",
+    "check": "npm run lint && npm run test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
