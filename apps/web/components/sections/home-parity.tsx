@@ -575,7 +575,8 @@ export function HomeParity() {
       heroBgLayer?.style.setProperty("--grad-opacity", String(1 - ease));
       if (heroP) heroP.style.opacity = String(1 - remap(sp, 0.15, 0.45, 0, 1));
       if (heroCta) heroCta.style.opacity = String(1 - remap(sp, 0.1, 0.4, 0, 1));
-      if (heroMainTitle) heroMainTitle.style.opacity = "1";
+      // 标题在 morph 后期随其他内容一起淡出，避免缩小后文字飘出屏幕外
+      if (heroMainTitle) heroMainTitle.style.opacity = String(1 - remap(sp, 0.5, 0.85, 0, 1));
 
       heroCards.style.opacity = String(1 - remap(sp, 0, 0.25, 0, 1));
       heroCards.style.transform = `translateX(-50%) translateY(${remap(sp, 0, 0.3, 0, 50)}px)`;
@@ -691,6 +692,29 @@ export function HomeParity() {
     window.addEventListener("scroll", onMorphScroll, { passive: true });
     cleanupFns.push(() => window.removeEventListener("scroll", onMorphScroll));
 
+    // ── morph 完成后，继续滚动时淡出 side-content，避免文字飘到屏幕外 ──
+    const onSideContentScroll = () => {
+      if (!morphDone || !heroStageWrapper || !sideContent) {
+        return;
+      }
+      const wrapperTop = heroStageWrapper.getBoundingClientRect().top + window.scrollY;
+      const stageTop = window.scrollY - wrapperTop;
+      // morph 完成后 0-0.5vh 内保持显示，0.5vh-1.5vh 逐渐淡出
+      const fadeStart = morphRange + vh() * 0.5;
+      const fadeEnd = morphRange + vh() * 1.5;
+      if (stageTop < fadeStart) {
+        sideContent.style.opacity = "1";
+      } else if (stageTop < fadeEnd) {
+        const fadeProgress = (stageTop - fadeStart) / (fadeEnd - fadeStart);
+        sideContent.style.opacity = String(1 - fadeProgress);
+      } else {
+        sideContent.style.opacity = "0";
+        sideContent.style.pointerEvents = "none";
+      }
+    };
+    window.addEventListener("scroll", onSideContentScroll, { passive: true });
+    cleanupFns.push(() => window.removeEventListener("scroll", onSideContentScroll));
+
     const ctaClasses = [
       "cta-hidden",
       "cta-entering",
@@ -750,6 +774,10 @@ export function HomeParity() {
       let currentFlipIndex = -1;
       let flipFrame: number | null = null;
       let flipSeen = false;
+      // ── 平滑插值状态：让翻页有阻尼感 ──
+      let smoothRaw = 0;
+      let targetRaw = 0;
+      let smoothFrame: number | null = null;
 
       const setMobileFlipState = () => {
         flipPageEls.forEach((page, index) => {
@@ -777,9 +805,24 @@ export function HomeParity() {
         const maxScroll = Math.max(0, stageHeight - window.innerHeight);
         const buffer = maxScroll * 0.15;
         const flipRange = Math.max(maxScroll - buffer * 2, 1);
-        const raw =
+        // 目标值：滚动驱动的原始进度
+        targetRaw =
           clamp((scrollIn - buffer) / flipRange, 0, 1) *
           (flipPageEls.length - 1);
+      };
+
+      // ── 平滑插值动画循环：lerp 实现阻尼感 ──
+      const smoothLoop = () => {
+        // lerp 系数 0.06 = 慢速阻尼，值越小越丝滑越慢
+        const lerpFactor = 0.06;
+        smoothRaw += (targetRaw - smoothRaw) * lerpFactor;
+
+        // 当差距足够小时直接对齐，避免无限计算
+        if (Math.abs(targetRaw - smoothRaw) < 0.0005) {
+          smoothRaw = targetRaw;
+        }
+
+        const raw = smoothRaw;
         const index = clamp(
           Math.floor(raw),
           0,
@@ -789,15 +832,22 @@ export function HomeParity() {
         flipPageEls.forEach((page, pageIndex) => {
           const reveal = clamp(raw - pageIndex, 0, 1);
           const clipPercent = reveal * 100;
-          const pushX = reveal * -12;
+          // 位移幅度从 -12 加大到 -24（翻倍）
+          const pushX = reveal * -24;
+          // 旋转角度增加张力（3D 翻转感）
+          const rotateY = reveal * -8;
+          // 缩放让退场页面有深度感
+          const scale = 1 - reveal * 0.08;
 
           page.style.clipPath = `inset(0 ${clipPercent}% 0 0)`;
           page.style.setProperty(
             "-webkit-clip-path",
             `inset(0 ${clipPercent}% 0 0)`,
           );
-          page.style.transform = `translateX(${pushX}%)`;
-          page.style.transition = "none";
+          page.style.transform = `translateX(${pushX}%) rotateY(${rotateY}deg) scale(${scale})`;
+          // 添加平滑过渡（阻尼感）
+          page.style.transition = "transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1)";
+          page.style.transformOrigin = "left center";
           page.style.zIndex = String(flipPageEls.length - pageIndex);
           page.classList.toggle("active", reveal < 0.5 && flipSeen);
 
@@ -838,6 +888,19 @@ export function HomeParity() {
           });
           currentFlipIndex = index;
         }
+
+        // 持续运行直到完全对齐
+        if (smoothRaw !== targetRaw) {
+          smoothFrame = window.requestAnimationFrame(smoothLoop);
+        } else {
+          smoothFrame = null;
+        }
+      };
+
+      const startSmoothLoop = () => {
+        if (smoothFrame === null) {
+          smoothFrame = window.requestAnimationFrame(smoothLoop);
+        }
       };
 
       const onFlipScroll = () => {
@@ -856,6 +919,7 @@ export function HomeParity() {
           flipFrame = window.requestAnimationFrame(() => {
             updateFlip(scrollIn);
             flipFrame = null;
+            startSmoothLoop();
           });
         }
       };
@@ -872,6 +936,9 @@ export function HomeParity() {
       cleanupFns.push(() => {
         if (flipFrame !== null) {
           window.cancelAnimationFrame(flipFrame);
+        }
+        if (smoothFrame !== null) {
+          window.cancelAnimationFrame(smoothFrame);
         }
         window.removeEventListener("scroll", onFlipScroll);
         window.removeEventListener("resize", onFlipResize);
@@ -1031,36 +1098,27 @@ export function HomeParity() {
       timers.push(
         window.setTimeout(() => {
           introStage.classList.add("fade-out");
-        }, 5500),
-      );
-      timers.push(
-        window.setTimeout(() => {
-          introStage.classList.add("hidden");
-          introStage.style.display = "none";
-          if (navbar) {
-            navbar.style.opacity = "1";
-          }
-
+          // ── 在 introStage 开始淡出的同时，立即初始化首屏位置并启动首屏动画 ──
+          // 这样首屏元素在 introStage 渐隐过程中同步渐现，避免"画面外执行后突然出现"
           const ease = "cubic-bezier(0.22,0.61,0.36,1)";
-          heroBlockContent.style.transition = "opacity 0.5s ease";
+          // 先确保 heroBlock 处于正确的初始 morph 位置（sp=0）
+          updateMorph(0);
+          // 首屏内容开始渐现
+          heroBlockContent.style.transition = "opacity 0.8s ease";
           heroBlockContent.style.opacity = "1";
           heroMainTitle?.classList.add("animate");
 
-          timers.push(
-            window.setTimeout(() => {
-              heroMainTitle?.classList.add("split");
-            }, 3400),
-          );
-
+          // 首屏卡片渐现
           timers.push(
             window.setTimeout(() => {
               heroCards.style.transition =
                 "opacity 1s cubic-bezier(0.22,0.61,0.36,1), transform 1s cubic-bezier(0.22,0.61,0.36,1)";
               heroCards.style.opacity = "1";
               heroCards.style.transform = "translateX(-50%) translateY(0)";
-            }, 3000),
+            }, 300),
           );
 
+          // 首屏副标题和按钮渐现
           timers.push(
             window.setTimeout(() => {
               [heroP, heroCta].forEach((element) => {
@@ -1071,15 +1129,24 @@ export function HomeParity() {
                 element.style.opacity = "1";
                 element.style.transform = "translateY(0)";
               });
-            }, 4300),
+            }, 600),
           );
 
+          // 标题分割动画
+          timers.push(
+            window.setTimeout(() => {
+              heroMainTitle?.classList.add("split");
+            }, 3400),
+          );
+
+          // 标题动画完成
           timers.push(
             window.setTimeout(() => {
               heroMainTitle?.classList.add("done");
             }, 4500),
           );
 
+          // 地球背景渐现
           timers.push(
             window.setTimeout(() => {
               const earthBackdrop = document.getElementById("earthBackdrop") as HTMLElement | null;
@@ -1105,6 +1172,15 @@ export function HomeParity() {
               window.requestAnimationFrame(animateEarth);
             }, 2800),
           );
+        }, 5500),
+      );
+      timers.push(
+        window.setTimeout(() => {
+          introStage.classList.add("hidden");
+          introStage.style.display = "none";
+          if (navbar) {
+            navbar.style.opacity = "1";
+          }
 
           timers.push(
             window.setTimeout(() => {
@@ -1117,9 +1193,9 @@ export function HomeParity() {
               });
               document.documentElement.style.overflow = "";
               startMorphPhase();
-            }, 5200),
+            }, 500),
           );
-        }, 6000),
+        }, 6300),
       );
     };
     const showHomeImmediately = () => {

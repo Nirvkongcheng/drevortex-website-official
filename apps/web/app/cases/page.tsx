@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LegacyPageShell } from "@/components/layout/legacy-page-shell";
-import { CasesParity } from "@/components/sections/cases-parity";
+import { CasesPortfolio } from "@/components/cases/cases-portfolio";
+import "../cases-portfolio.css";
 
 export const metadata: Metadata = {
   title: "案例展示",
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 export default function CasesPage() {
   return (
     <LegacyPageShell>
-      <CasesParity />
+      <CasesPortfolio />
     </LegacyPageShell>
   );
 }

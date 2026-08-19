@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LegacyPageShell } from "@/components/layout/legacy-page-shell";
-import { AboutParity } from "@/components/sections/about-parity";
+import { AboutPortfolio } from "@/components/about/about-portfolio";
+import "../about-portfolio.css";
 
 export const metadata: Metadata = {
   title: "关于我们",
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <LegacyPageShell>
-      <AboutParity />
+      <AboutPortfolio />
     </LegacyPageShell>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LegacyPageShell } from "@/components/layout/legacy-page-shell";
-import { ContactParity } from "@/components/sections/contact-parity";
+import { ContactPortfolio } from "@/components/contact/contact-portfolio";
+import "../contact-portfolio.css";
 
 export const metadata: Metadata = {
   title: "联系我们",
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <LegacyPageShell>
-      <ContactParity />
+      <div className="contact-portfolio-root">
+        <ContactPortfolio />
+      </div>
     </LegacyPageShell>
   );
 }

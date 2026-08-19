@@ -66,12 +66,14 @@
     z-index: 5;
     opacity: 0;
     transform: translateY(12px);
+    filter: blur(10px);
     transition: var(--transition-smooth);
 }
 
 .hero-features.show {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
 }
 
 .feature-item {

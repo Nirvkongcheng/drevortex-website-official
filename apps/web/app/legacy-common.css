@@ -37,6 +37,9 @@
     --section-bg: var(--bg-secondary);
     --transition: 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
     --transition-slow: 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+    --transition-smooth: opacity 0.7s cubic-bezier(0.22, 0.61, 0.36, 1),
+                        transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1),
+                        filter 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
     --section-gap: clamp(5rem, 10vw, 9rem);
 }
 
@@ -469,14 +472,17 @@ a[href="https://drevortex.com"] { color: #60a5fa; }
 .animate-on-scroll {
     opacity: 0;
     transform: translateY(30px);
+    filter: blur(10px);
     transition: opacity 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
-                transform 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
+                transform 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
+                filter 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
     transition-delay: var(--reveal-delay, 0ms);
 }
 
 .animate-on-scroll.visible {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
 }
 
 #aboutPageRoot .concept-card.animate-on-scroll,
@@ -490,33 +496,39 @@ a[href="https://drevortex.com"] { color: #60a5fa; }
 #contactPageRoot .contact-form.animate-on-scroll {
     opacity: 1;
     transform: none;
+    filter: blur(0);
 }
 
 .text-reveal-on-scroll {
     opacity: 0;
     transform: translateY(16px);
+    filter: blur(10px);
     transition: opacity 0.75s cubic-bezier(0.22, 0.61, 0.36, 1),
-                transform 0.75s cubic-bezier(0.22, 0.61, 0.36, 1);
+                transform 0.75s cubic-bezier(0.22, 0.61, 0.36, 1),
+                filter 0.75s cubic-bezier(0.22, 0.61, 0.36, 1);
     transition-delay: var(--reveal-delay, 0ms);
 }
 
 .text-reveal-on-scroll.visible {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
 }
 
 .reveal-line {
     display: inline-block;
     opacity: 0;
     transform: translateY(16px);
+    filter: blur(10px);
     transition: opacity 0.5s cubic-bezier(0.22, 0.61, 0.36, 1),
-                transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+                transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1),
+                filter 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
     transition-delay: calc(var(--line-index, 0) * 55ms + 100ms);
 }
 
 .visible .reveal-line,
 .hero-overlay .reveal-line,
-.hero-content .reveal-line { opacity: 1; transform: translateY(0); }
+.hero-content .reveal-line { opacity: 1; transform: translateY(0); filter: blur(0); }
 
 /* ── Keyframes ── */
 @keyframes drift {

@@ -21,6 +21,7 @@ export function LegacyPageShell({ children }: { children: React.ReactNode }) {
   const theme = useThemeStore((state) => state.theme);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
   const [menuOpen, setMenuOpen] = useState(false);
+  const isHome = pathname === "/";
 
   const markSkipHomeIntro = (href: string) => {
     setMenuOpen(false);
@@ -36,6 +37,40 @@ export function LegacyPageShell({ children }: { children: React.ReactNode }) {
       document.body.classList.remove("menu-open");
     };
   }, [menuOpen]);
+
+  // 统一导航栏动画：淡入 + 滚动收缩（首页由 HomeParity 接管，此处跳过）
+  useEffect(() => {
+    if (isHome) return;
+    const navbar = document.getElementById("navbar");
+    if (!navbar) return;
+
+    // 初始隐藏 → 渐现
+    navbar.style.opacity = "0";
+    navbar.style.transform = "translateY(-12px)";
+    navbar.style.transition = "opacity 0.8s cubic-bezier(0.22,0.61,0.36,1), transform 0.8s cubic-bezier(0.22,0.61,0.36,1)";
+    const fadeInTimer = window.setTimeout(() => {
+      navbar.style.opacity = "1";
+      navbar.style.transform = "translateY(0)";
+    }, 120);
+
+    // 滚动收缩
+    const onScroll = () => {
+      navbar.classList.toggle("scrolled", window.scrollY > 40);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    // 清理 transition 避免影响后续 hover
+    const cleanupTimer = window.setTimeout(() => {
+      navbar.style.transition = "";
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(fadeInTimer);
+      window.clearTimeout(cleanupTimer);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [isHome]);
 
   return (
     <>
